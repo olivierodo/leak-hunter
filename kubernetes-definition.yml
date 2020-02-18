@@ -1,0 +1,41 @@
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: leak-hunter
+    provider: restqa
+    type: QA
+  name: leak-hunter
+data:
+  SLACK_URL: '<YOUR SLACK URL>'
+  KEYWORD: '<YOUR KEYWORD>'
+  GITHUB_ACCESS_TOKEN: '<YOUR GITHUB ACCESS TOKEN>'
+  GITLAB_ACCESS_TOKEN: '<YOUR GITLAB ACCESS TOKEN>'
+  BITBUCKET_ACCESS_TOKEN: '<YOUR BITBUCKET ACCESS TOKEN>'
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: leak-hunter
+    provider: restqa
+    type: QA
+  name: leak-hunter
+  namespace: api-portal
+spec:
+  template:
+    spec:
+      containers:
+      - name: leak-hunter
+        envFrom:
+          - configMapRef:
+              name: leak-hunter
+        image: restqa/leak-hunter:latest
+        imagePullPolicy: Always
+        command: ["hunt",  "-c", "slack"]
+      restartPolicy: Never
+  backoffLimit: 4

@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+
+(async function () {
+  const Config = require('./config')
+  const Providers = require('./src/providers')
+  const Channels = require('./src/channels')
+  const Options = require('yargs')
+    .usage('Usage: $0 [options] <keyword>')
+    .example('$0 -c slack my-keyword', 'Run a search through all the providers and use the "slack" channel')
+    .example('KEYWORD=my-keyword npm start -c slack', 'Share the keyword through the  env var')
+    .example('$0 -p github -p gitlab -c slack my-keyword', 'Run the search only through "github" and "gitlab" providers')
+    .example('$0 -i  facebook -c slack my-keyword', 'Run a search and ignore facebook from the result')
+    .option('p', {
+      alias: 'provider',
+      choices: Object.keys(Providers),
+      type: 'array',
+      default: Object.keys(Providers),
+      description: 'choose the provider upon the search happens',
+      demandOption: false
+    })
+    .option('i', {
+      alias: 'ignore',
+      type: 'array',
+      default: [],
+      description: 'Term that need to be exclude from the search',
+      demandOption: false
+    })
+    .option('c', {
+      alias: 'channel',
+      description: 'choose the channel upon the notification occurs',
+      choices: Object.keys(Channels),
+      type: 'string',
+      demandOption: true
+    })
+    .help()
+    .wrap(null)
+    .argv
+
+  try {
+
+    Options.keyword = Options._[0] || Config.keyword
+    if (!Options.keyword) throw new Error('Please provide a keyword to continue')
+
+    console.log(`Search the term : "${Options.keyword}" ${(Options.ignore.length && 'ignore: ' + Options.ignore.join(',')) || ''} on the providers "${Options.provider.join(', ')}" and share the notification ${Options.channel}`)
+
+    const opt = {
+      keyword: Options.keyword,
+      ignore: Options.ignore
+    }
+
+    let callers = Options.provider.map(p => {
+      return Providers[p].call(this, {...opt, ...Config[p]})
+    })
+
+  
+    let data = await Promise.all(callers)
+    let result = await Promise.all(data.flat().map(Channels[Options.channel]))
+  
+    console.log(result)
+
+    return result
+  
+  } catch (e) {
+    console.log('----------------------------------------------------------')
+    console.log(e.message)
+    console.log(e)
+    console.log('----------------------------------------------------------')
+  }
+
+})()
