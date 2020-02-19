@@ -64,3 +64,7 @@ TODO
 
 * Bitbucket integration
 * Gitlab integraton
+
+## License
+
+[MIT License](./LICENSE)
